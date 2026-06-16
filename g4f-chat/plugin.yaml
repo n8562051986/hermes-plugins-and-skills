@@ -1,0 +1,5 @@
+name: g4f-chat
+kind: plugin
+version: 1.0.0
+description: /g4f <question> — AI chat via g4f (PollinationsAI), gratis no login
+author: user
