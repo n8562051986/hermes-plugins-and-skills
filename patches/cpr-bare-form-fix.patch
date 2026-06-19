@@ -1,5 +1,5 @@
 diff --git a/cli.py b/cli.py
-index 47bca3862..e4dab1798 100644
+index 47bca3862..6de88c5db 100644
 --- a/cli.py
 +++ b/cli.py
 @@ -2207,6 +2207,10 @@ def _cprint(text: str):
@@ -24,43 +24,7 @@ index 47bca3862..e4dab1798 100644
  _SGR_MOUSE_ESC_RE = re.compile(r"\x1b\[<\d+;\d+;\d+[Mm]")
  _SGR_MOUSE_VISIBLE_RE = re.compile(r"\^\[\[<\d+;\d+;\d+[Mm]")
  # Some terminals/filters can drop ESC and literal "^[[", leaving only
-@@ -2772,11 +2780,34 @@ def _bind_prompt_submit_keys(kb, handler) -> None:
- 
- 
- def _disable_prompt_toolkit_cpr_warning(app) -> None:
--    """Let prompt_toolkit fall back from CPR without printing into the prompt."""
-+    """Let prompt_toolkit fall back from CPR without printing into the prompt.
-+
-+    Also disables CPR queries entirely (``enable_cpr=False``) so that
-+    prompt_toolkit never sends ``ESC[6n`` to the terminal.  Under ConPTY
-+    / WSL the terminal's ``ESC[<row>;<col>R`` response can race past the
-+    input parser and land as visible text (see issue #23350).  Preventing
-+    the query is cleaner than trying to strip the leaked response from
-+    both the input buffer and the rendered output.
-+    """
-     try:
-         app.renderer.cpr_not_supported_callback = None
-     except Exception:
-         pass
-+    try:
-+        out = app.renderer.output
-+        if hasattr(out, 'enable_cpr'):
-+            out.enable_cpr = False
-+    except Exception:
-+        pass
-+    # Renderer caches cpr_support during __init__ (line 370-371 of
-+    # prompt_toolkit/renderer.py) by checking responds_to_cpr BEFORE
-+    # we had a chance to set enable_cpr=False above.  Override the
-+    # cached value so every subsequent code path skips the ESC[6n query.
-+    try:
-+        from prompt_toolkit.renderer import CPR_Support
-+        app.renderer.cpr_support = CPR_Support.NOT_SUPPORTED
-+    except Exception:
-+        pass
- 
- 
- def _strip_leaked_terminal_responses_with_meta(text: str) -> tuple[str, bool]:
-@@ -2799,8 +2830,9 @@ def _strip_leaked_terminal_responses_with_meta(text: str) -> tuple[str, bool]:
+@@ -2799,8 +2807,9 @@ def _strip_leaked_terminal_responses_with_meta(text: str) -> tuple[str, bool]:
  
      has_esc = "\x1b[" in text
      has_visible = "^[" in text
@@ -71,7 +35,7 @@ index 47bca3862..e4dab1798 100644
          return text, False
  
      had_mouse_reports = False
-@@ -2815,6 +2847,9 @@ def _strip_leaked_terminal_responses_with_meta(text: str) -> tuple[str, bool]:
+@@ -2815,6 +2824,9 @@ def _strip_leaked_terminal_responses_with_meta(text: str) -> tuple[str, bool]:
          text, count = _SGR_MOUSE_VISIBLE_RE.subn("", text)
          had_mouse_reports = had_mouse_reports or count > 0
  
