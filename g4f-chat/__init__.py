@@ -7,6 +7,7 @@ Calls the `ai` CLI script to answer questions via g4f (PollinationsAI).
 from __future__ import annotations
 
 import logging
+import re
 import subprocess
 import sys
 from typing import Optional
@@ -15,6 +16,17 @@ logger = logging.getLogger(__name__)
 
 MAX_OUTPUT_CHARS = 50_000
 TIMEOUT = 120
+
+# ANSI escape sequence regex — strips color codes, CPR, DSR, OSC, etc.
+_ANSI_STRIP = re.compile(
+    r'\x1b\[[0-9;]*[a-zA-Z]'     # CSI sequences: color, CPR (ESC[30;1R), cursor, etc.
+    r'|\x1b\].*?\x07'             # OSC sequences (ESC]...BEL)
+    r'|\x1b[PX^_].*?\x1b\\'      # DCS/SOS/PM/APC strings
+)
+
+
+def _strip_ansi(text: str) -> str:
+    return _ANSI_STRIP.sub('', text)
 
 
 def _handle_g4f(raw_args: str) -> Optional[str]:
@@ -34,8 +46,8 @@ def _handle_g4f(raw_args: str) -> Optional[str]:
             timeout=TIMEOUT,
         )
 
-        output = (result.stdout or "").strip()
-        stderr = (result.stderr or "").strip()
+        output = _strip_ansi((result.stdout or "").strip())
+        stderr = _strip_ansi((result.stderr or "").strip())
 
         if result.returncode != 0:
             return f"Error: {stderr or output or f'exit code {result.returncode}'}"
