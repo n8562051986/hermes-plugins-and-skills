@@ -4,7 +4,6 @@ Works in CLI and gateway (Telegram, Discord, etc.).
 Calls `cmd -p` in headless mode to answer using your Command Code subscription.
 - Uses --continue for conversational context between calls
 - Saves chat history to ~/.hermes/cc-history/ for reference
-- Hasilkan output bersih tanpa ANSI yang ganggu TUI
 
 Requires `cmd` to be logged in (run `cmd login` first).
 """
@@ -14,7 +13,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 import subprocess
 import sys
 import time
@@ -29,18 +27,7 @@ MAX_TURNS = 50  # conversation turns (--continue accumulates across calls)
 
 HISTORY_DIR = Path.home() / '.hermes' / 'cc-history'
 
-# ANSI escape sequence regex — strips color codes, CPR, DSR, OSC, etc.
-_ANSI_STRIP = re.compile(
-    r'\x1b\[[0-9;]*[a-zA-Z]'     # CSI sequences: color, CPR (ESC[30;1R), cursor, etc.
-    r'|\x1b\].*?\x07'             # OSC sequences (ESC]...BEL)
-    r'|\x1b[PX^_].*?\x1b\\'      # DCS/SOS/PM/APC strings
-)
-
 DEFAULT_MODEL = 'deepseek/deepseek-v4-flash'
-
-
-def _strip_ansi(text: str) -> str:
-    return _ANSI_STRIP.sub('', text)
 
 
 def _session_file() -> Path:
@@ -133,8 +120,8 @@ def _handle_cc(raw_args: str) -> Optional[str]:
             timeout=TIMEOUT,
         )
 
-        output = _strip_ansi((result.stdout or '').strip())
-        stderr = _strip_ansi((result.stderr or '').strip())
+        output = (result.stdout or '').strip()
+        stderr = (result.stderr or '').strip()
 
         # Save history
         _save_history('user', query, model)
