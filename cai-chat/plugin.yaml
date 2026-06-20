@@ -1,6 +1,0 @@
-name: cai-chat
-description: AI chat via Command Code Web UI (http://127.0.0.1:5000)
-version: 1.0.0
-author: hermes
-type: slash
-command: cai

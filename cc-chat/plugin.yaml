@@ -1,5 +1,0 @@
-name: cc-chat
-kind: plugin
-version: 1.0.0
-description: /cc <question> — AI chat via Command Code CLI (cmd -p), pakai subscription
-author: user

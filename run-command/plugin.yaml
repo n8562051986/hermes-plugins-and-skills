@@ -1,5 +1,0 @@
-name: run-command
-kind: plugin
-version: 1.0.0
-description: /run <command> — execute shell commands directly, zero AI tokens
-author: user
